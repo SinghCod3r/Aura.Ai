@@ -2,8 +2,8 @@ import mongoose, { Document, Model } from "mongoose";
 
 export interface IAssessmentResult extends Document {
     studentId: mongoose.Types.ObjectId;
-    roadmap?: any;
-    skillGap?: any;
+    roadmap?: string;
+    skillGap?: Record<string, unknown>;
     recommendations?: string[];
     answers: { questionId: string; answerValue: string }[];
     createdAt: Date;

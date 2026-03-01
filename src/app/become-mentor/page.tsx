@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import connectToDatabase from "@/lib/mongoose";
-import { User, MentorProfile } from "@/models";
+import { User } from "@/models";
 import { Briefcase, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +26,7 @@ export default async function BecomeMentorPage() {
                     <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle2 className="w-8 h-8" />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-2">You're already a Mentor!</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">You&apos;re already a Mentor!</h2>
                     <p className="text-slate-600 mb-8">Your account is fully upgraded. Head over to your dashboard to manage your sessions.</p>
                     <a href="/dashboard">
                         <Button className="w-full">Go to Dashboard</Button>

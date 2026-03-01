@@ -55,7 +55,7 @@ export async function POST(req: Request) {
         // Redirect back to dashboard with a success message
         return NextResponse.redirect(new URL("/dashboard?success=mentor_approved", req.url), 302);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error approving mentor:", error);
         return NextResponse.redirect(new URL("/dashboard?error=server_error", req.url), 302);
     }

@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 export const trackEvent = async (
     eventName: string,
     userId?: string | mongoose.Types.ObjectId,
-    properties?: any
+    properties?: Record<string, unknown>
 ) => {
     try {
         await connectToDatabase();

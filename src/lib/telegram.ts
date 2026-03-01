@@ -1,9 +1,9 @@
-// @ts-ignore
+// @ts-expect-error node-telegram-bot-api types are not available
 import TelegramBot from 'node-telegram-bot-api';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-// @ts-ignore
-let bot: any = null;
+// @ts-expect-error TelegramBot type not available
+let bot: InstanceType<typeof TelegramBot> | null = null;
 
 if (token) {
     bot = new TelegramBot(token, { polling: false });

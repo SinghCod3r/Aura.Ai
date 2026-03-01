@@ -74,7 +74,7 @@ export default function Home() {
               Why are you still struggling?
             </h2>
             <p className="mt-4 text-lg text-slate-600">
-              The traditional college system doesn't prepare you for the real world. We fix that.
+              The traditional college system doesn&apos;t prepare you for the real world. We fix that.
             </p>
           </div>
 
@@ -84,7 +84,7 @@ export default function Home() {
                 <Target className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-3">No Clear Roadmap</h3>
-              <p className="text-slate-600">You're applying everywhere without a strategy, wasting months on the wrong skills.</p>
+              <p className="text-slate-600">You&apos;re applying everywhere without a strategy, wasting months on the wrong skills.</p>
             </div>
             <div className="rounded-2xl bg-white p-8 shadow-sm border border-slate-100">
               <div className="h-12 w-12 rounded-xl bg-orange-100 flex items-center justify-center mb-6 text-orange-600">

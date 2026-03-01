@@ -3,7 +3,6 @@ import { auth } from "@clerk/nextjs/server";
 import connectToDatabase from "@/lib/mongoose";
 import { User, AvailabilitySlot, Booking } from "@/models";
 import { razorpay } from "@/lib/razorpay";
-import mongoose from "mongoose";
 
 export async function POST(req: Request) {
     try {
@@ -65,10 +64,10 @@ export async function POST(req: Request) {
             amount: order.amount,
             currency: order.currency,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error creating booking:", error);
         return NextResponse.json(
-            { error: "Failed to create booking", details: error.message },
+            { error: "Failed to create booking", details: error instanceof Error ? error.message : "Unknown error" },
             { status: 500 }
         );
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mail, MessageSquare, MapPin, Send } from "lucide-react";
+import { Mail, MessageSquare, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ContactPage() {

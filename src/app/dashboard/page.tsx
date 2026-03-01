@@ -1,11 +1,18 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
-import connectToDatabase from '@/lib/mongoose';
 import { User, Booking, MentorProfile, AssessmentResult, Payment } from '@/models';
 import { GraduationCap, Briefcase, Settings, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+
+interface PendingMentor {
+    _id: { toString(): string };
+    userId?: { _id: { toString(): string }; name?: string; email?: string };
+    designation?: string;
+    company?: string;
+    bio?: string;
+}
 
 export default async function DashboardPage() {
     const clerkUser = await currentUser();
@@ -49,14 +56,12 @@ export default async function DashboardPage() {
     const payments = isMentor ? await Payment.find({ 'metadata.mentorId': user._id, status: 'SUCCESS' }) : [];
 
     let totalUsers = 0, activeMentors = 0, totalSessions = 0;
-    let recentActivity: any[] = [];
-    let pendingMentors: any[] = [];
+    let pendingMentors: PendingMentor[] = [];
 
     if (isAdmin) {
         totalUsers = await User.countDocuments();
         activeMentors = await MentorProfile.countDocuments({ isApproved: true });
         totalSessions = await Booking.countDocuments();
-        recentActivity = await Booking.find().sort({ createdAt: -1 }).limit(3);
 
         // Fetch Mentors awaiting approval
         pendingMentors = await MentorProfile.find({ isApproved: false }).populate("userId", "name email");
@@ -80,7 +85,7 @@ export default async function DashboardPage() {
 
                 {/* --- STUDENT DASHBOARD VIEW --- */}
                 {isStudent && (() => {
-                    const upcomingBookings = bookings.filter((b: any) => b.studentId.toString() === user._id.toString() && b.status === 'CONFIRMED');
+                    const upcomingBookings = bookings.filter((b) => b.studentId.toString() === user._id.toString() && b.status === 'CONFIRMED');
                     const profileCompletion = user.name && user.role ? 100 : 33;
 
                     return (
@@ -107,7 +112,7 @@ export default async function DashboardPage() {
                                             </div>
                                         ) : (
                                             <>
-                                                <p className="text-slate-500 mb-4">You haven't taken the AI assessment yet.</p>
+                                                <p className="text-slate-500 mb-4">You haven&apos;t taken the AI assessment yet.</p>
                                                 <Link href="/assessment">
                                                     <Button className="font-semibold shadow-md shadow-indigo-600/20">
                                                         Start Assessment
@@ -122,7 +127,7 @@ export default async function DashboardPage() {
                                     <h2 className="text-xl font-bold text-slate-900 mb-4">Recent Bookings</h2>
                                     {upcomingBookings.length > 0 ? (
                                         <ul className="space-y-4">
-                                            {upcomingBookings.map((b: any, i: number) => (
+                                            {upcomingBookings.map((b, i: number) => (
                                                 <li key={i} className="flex justify-between items-center p-4 bg-slate-50 rounded-lg border border-slate-100">
                                                     <div>
                                                         <p className="font-medium text-slate-900">Mentorship Session</p>
@@ -163,8 +168,8 @@ export default async function DashboardPage() {
 
                 {/* --- MENTOR DASHBOARD VIEW --- */}
                 {isMentor && (() => {
-                    const upcomingSessions = bookings.filter((b: any) => b.mentorId.toString() === user._id.toString() && b.status === 'CONFIRMED');
-                    const totalEarnings = payments.reduce((acc: number, p: any) => acc + (p.amount / 100), 0); // Assuming Razorpay paisa
+                    const upcomingSessions = bookings.filter((b) => b.mentorId.toString() === user._id.toString() && b.status === 'CONFIRMED');
+                    const totalEarnings = payments.reduce((acc: number, p) => acc + (p.amount / 100), 0); // Assuming Razorpay paisa
 
                     return (
                         <div className="grid md:grid-cols-2 gap-6">
@@ -181,7 +186,7 @@ export default async function DashboardPage() {
                                 <div className="py-2 text-left">
                                     {upcomingSessions.length > 0 ? (
                                         <ul className="space-y-4">
-                                            {upcomingSessions.map((session: any, index: number) => (
+                                            {upcomingSessions.map((session, index: number) => (
                                                 <li key={index} className="flex justify-between items-center bg-slate-50 p-4 rounded-lg border border-slate-100">
                                                     <div>
                                                         <p className="font-semibold text-slate-900">Mentorship Session</p>
@@ -238,14 +243,14 @@ export default async function DashboardPage() {
                                 </h3>
                                 {pendingMentors.length > 0 ? (
                                     <ul className="space-y-4">
-                                        {pendingMentors.map((mentorProfile: any, idx: number) => {
+                                        {pendingMentors.map((mentorProfile, idx: number) => {
                                             const applicantName = mentorProfile.userId?.name || mentorProfile.userId?.email || "Unknown User";
                                             return (
                                                 <li key={idx} className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                                                     <div>
                                                         <p className="font-bold text-slate-900">{applicantName}</p>
                                                         <p className="text-slate-500 text-sm">{mentorProfile.designation} @ {mentorProfile.company}</p>
-                                                        <p className="text-slate-600 text-sm mt-2 line-clamp-1 italic">"{mentorProfile.bio}"</p>
+                                                        <p className="text-slate-600 text-sm mt-2 line-clamp-1 italic">&ldquo;{mentorProfile.bio}&rdquo;</p>
                                                     </div>
                                                     <form action="/api/admin/approve-mentor" method="POST" className="shrink-0 flex gap-2">
                                                         <input type="hidden" name="mentorId" value={mentorProfile._id.toString()} />

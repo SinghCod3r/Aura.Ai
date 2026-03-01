@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 
         // Redirect to dashboard with a pending message
         return NextResponse.redirect(new URL("/dashboard?status=pending", req.url), 302);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error processing mentor application:", error);
         return NextResponse.redirect(new URL("/become-mentor?error=server_error", req.url), 302);
     }
