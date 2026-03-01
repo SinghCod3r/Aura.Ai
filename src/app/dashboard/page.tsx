@@ -6,6 +6,14 @@ import { GraduationCap, Briefcase, Settings, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
+interface PendingMentor {
+    _id: { toString(): string };
+    userId?: { _id: { toString(): string }; name?: string; email?: string };
+    designation?: string;
+    company?: string;
+    bio?: string;
+}
+
 export default async function DashboardPage() {
     const clerkUser = await currentUser();
 
@@ -48,7 +56,7 @@ export default async function DashboardPage() {
     const payments = isMentor ? await Payment.find({ 'metadata.mentorId': user._id, status: 'SUCCESS' }) : [];
 
     let totalUsers = 0, activeMentors = 0, totalSessions = 0;
-    let pendingMentors: Array<{ _id: { toString(): string }; userId?: { _id: { toString(): string }; name?: string; email?: string }; designation?: string; company?: string; bio?: string }> = [];
+    let pendingMentors: PendingMentor[] = [];
 
     if (isAdmin) {
         totalUsers = await User.countDocuments();

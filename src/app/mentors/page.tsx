@@ -5,6 +5,20 @@ import connectToDatabase from '@/lib/mongoose';
 import { User, MentorProfile } from '@/models';
 import MentorCard from './MentorCard';
 
+interface PopulatedMentorProfile {
+    _id: { toString(): string };
+    userId?: {
+        _id?: { toString(): string };
+        name?: string;
+    };
+    designation?: string;
+    company?: string;
+    averageRating?: number;
+    totalReviews?: number;
+    expertise?: string[];
+    hourlyRate?: number;
+}
+
 export default async function MentorsPage() {
     await connectToDatabase();
 
@@ -15,20 +29,20 @@ export default async function MentorsPage() {
     }).lean();
 
     // Map DB data to match the UI shape
-    const mentors = mentorProfiles.map((p: Record<string, unknown>) => {
-        const user = p.userId as Record<string, unknown> | undefined;
+    const mentors = mentorProfiles.map((p: PopulatedMentorProfile) => {
+        const user = p.userId;
         return {
             id: String(p._id),
             userId: user?._id ? String(user._id) : undefined,
-            name: (user?.name as string) || "Unknown Mentor",
-            role: (p.designation as string) || "AI Mentor",
-            company: (p.company as string) || "Independent",
+            name: user?.name || "Unknown Mentor",
+            role: p.designation || "AI Mentor",
+            company: p.company || "Independent",
             location: "Remote", // Defaulting to remote for now
-            rating: (p.averageRating as number) || 5.0,
-            reviews: (p.totalReviews as number) || 0,
-            skills: (p.expertise as string[]) || [],
+            rating: p.averageRating || 5.0,
+            reviews: p.totalReviews || 0,
+            skills: p.expertise || [],
             image: "bg-indigo-600",
-            hourlyRate: (p.hourlyRate as number) || 50
+            hourlyRate: p.hourlyRate || 50
         };
     });
 
