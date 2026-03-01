@@ -61,7 +61,7 @@ export default function CheckoutButton({ mentorId, serviceId, serviceName, price
                 name: "Aura.Ai Mentorship",
                 description: `Book: ${serviceName} on ${selectedDate} at ${selectedTime}`,
                 order_id: data.orderId,
-                handler: function (response: any) {
+                handler: function () {
                     toast.success("Payment successful! Redirecting to your dashboard...", { duration: 4000 });
                     setTimeout(() => {
                         window.location.href = "/dashboard?payment=success";
@@ -77,18 +77,18 @@ export default function CheckoutButton({ mentorId, serviceId, serviceName, price
                 },
             };
 
-            // @ts-ignore
+            // @ts-expect-error Razorpay is loaded via external script
             const rzp = new window.Razorpay(options);
 
-            rzp.on('payment.failed', function (response: any) {
+            rzp.on('payment.failed', function (response: { error: { description: string } }) {
                 toast.error(`Payment failed: ${response.error.description}`);
             });
 
             rzp.open();
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.dismiss(loadingToast);
-            toast.error(error.message || "An error occurred during checkout");
+            toast.error(error instanceof Error ? error.message : "An error occurred during checkout");
         } finally {
             setLoading(false);
         }

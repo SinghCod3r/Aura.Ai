@@ -11,7 +11,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { experience, domains, goal, score } = body;
+        const { experience, domains, goal } = body;
 
         await connectToDatabase();
         const dbUser = await User.findOne({ clerkId: clerkUser.id });
@@ -57,8 +57,8 @@ export async function POST(req: Request) {
             recommendations
         }, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Assessment creation error:", error);
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Internal Server Error" }, { status: 500 });
     }
 }

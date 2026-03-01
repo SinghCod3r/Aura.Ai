@@ -1,10 +1,10 @@
 import * as brevo from '@getbrevo/brevo';
 
-// @ts-ignore
+// @ts-expect-error brevo types are incomplete
 const apiInstance = new brevo.TransactionalEmailsApi();
 
 if (process.env.BREVO_API_KEY) {
-    // @ts-ignore
+    // @ts-expect-error brevo types are incomplete
     apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 } else {
     console.warn("BREVO_API_KEY is not set.");
@@ -18,7 +18,7 @@ interface SendEmailParams {
 }
 
 export const sendEmail = async ({ to, subject, htmlContent, sender = { email: "no-reply@aura.ai", name: "Aura.Ai" } }: SendEmailParams) => {
-    // @ts-ignore
+    // @ts-expect-error brevo types are incomplete
     const sendSmtpEmail = new brevo.SendSmtpEmail();
 
     sendSmtpEmail.subject = subject;

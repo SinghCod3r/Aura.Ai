@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         await user.save();
 
         return NextResponse.redirect(new URL("/dashboard", req.url), 302);
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
     }
 }

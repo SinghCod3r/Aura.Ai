@@ -19,8 +19,8 @@ export default function AboutPage() {
                             Empowering Careers with <span className="text-indigo-400">AI Innovation</span>
                         </h1>
                         <p className="text-lg text-slate-300 md:text-xl/relaxed">
-                            At Aura.Ai, we believe that navigating your career shouldn't be a shot in the dark.
-                            We're building the future of professional development by combining artificial intelligence
+                            At Aura.Ai, we believe that navigating your career shouldn&apos;t be a shot in the dark.
+                            We&apos;re building the future of professional development by combining artificial intelligence
                             with human expertise.
                         </p>
                     </div>

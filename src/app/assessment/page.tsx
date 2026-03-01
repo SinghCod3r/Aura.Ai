@@ -8,15 +8,13 @@ import toast from 'react-hot-toast';
 
 export default function AssessmentPage() {
     const [step, setStep] = useState(1);
-    const totalSteps = 5; // Step 4 is loading, Step 5 is the result
 
     // Form State
     const [experience, setExperience] = useState("");
     const [domains, setDomains] = useState<string[]>([]);
-    const [goal, setGoal] = useState("");
 
     // Result State
-    const [result, setResult] = useState<any>(null);
+    const [result, setResult] = useState<{ roadmap: string; recommendations: string[] } | null>(null);
 
     const toggleDomain = (domain: string) => {
         if (domains.includes(domain)) {
@@ -31,7 +29,6 @@ export default function AssessmentPage() {
     };
 
     const submitAssessment = async (finalGoal: string) => {
-        setGoal(finalGoal);
         setStep(4); // Move to Loading step immediately
 
         try {
@@ -58,8 +55,8 @@ export default function AssessmentPage() {
                 setStep(5);
             }, 2500);
 
-        } catch (error: any) {
-            toast.error(error.message);
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : "An error occurred");
             // Revert back so they can try again if auth fails
             setStep(3);
         }
@@ -218,7 +215,7 @@ export default function AssessmentPage() {
                             Assessment Complete!
                         </h2>
                         <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
-                            We've processed your {experience.toLowerCase()} level experience focusing on {domains.join(" and ")} to map out your shortest path to success.
+                            We&apos;ve processed your {experience.toLowerCase()} level experience focusing on {domains.join(" and ")} to map out your shortest path to success.
                         </p>
 
                         <div className="bg-white p-8 rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-500/5 mb-8 text-left relative overflow-hidden">

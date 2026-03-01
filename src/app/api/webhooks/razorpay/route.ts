@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import connectToDatabase from "@/lib/mongoose";
-import { Booking, Payment, User } from "@/models";
-import { sendEmail } from "@/lib/brevo";
-import { sendTelegramMessage } from "@/lib/telegram";
+import { Payment } from "@/models";
 
 export async function POST(req: Request) {
     try {
@@ -42,7 +40,7 @@ export async function POST(req: Request) {
             // we'll find payment by orderId if we pre-created it, or create it now.
 
             // Let's create payment record
-            const paymentRecord = await Payment.create({
+            await Payment.create({
                 razorpayOrderId: orderId,
                 razorpayPaymentId: paymentId,
                 amount: paymentEntity.amount / 100, // convert paise to INR
@@ -54,7 +52,7 @@ export async function POST(req: Request) {
             // For robust implementation, we'll assume receipt matches the booking ID
             // If we used receipt: `receipt_${booking._id}` in the order creation
 
-            const orderNotes = event.payload.order?.entity?.notes || {}; // If fetched
+            // If fetched from order notes
             // We will need to query razorpay API or rely on 'notes' to link payment to booking 
             // Mongoose id from receipt if passed during order creation, Razorpay includes receipt in payment entity if it was in the order
             // But typically, a `receipt` field is not strongly propagated unless it's in `notes`.
@@ -74,7 +72,7 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({ status: "ok" });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Razorpay webhook error:", error);
         return NextResponse.json({ error: "Webhook error" }, { status: 500 });
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, Star, MapPin, Briefcase } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import connectToDatabase from '@/lib/mongoose';
 import { User, MentorProfile } from '@/models';
@@ -15,20 +15,20 @@ export default async function MentorsPage() {
     }).lean();
 
     // Map DB data to match the UI shape
-    const mentors = mentorProfiles.map((p: any) => {
-        const user = p.userId;
+    const mentors = mentorProfiles.map((p: Record<string, unknown>) => {
+        const user = p.userId as Record<string, unknown> | undefined;
         return {
-            id: p._id.toString(),
-            userId: user?._id?.toString(),
-            name: user?.name || "Unknown Mentor",
-            role: p.designation || "AI Mentor",
-            company: p.company || "Independent",
+            id: String(p._id),
+            userId: user?._id ? String(user._id) : undefined,
+            name: (user?.name as string) || "Unknown Mentor",
+            role: (p.designation as string) || "AI Mentor",
+            company: (p.company as string) || "Independent",
             location: "Remote", // Defaulting to remote for now
-            rating: p.averageRating || 5.0,
-            reviews: p.totalReviews || 0,
-            skills: p.expertise || [],
+            rating: (p.averageRating as number) || 5.0,
+            reviews: (p.totalReviews as number) || 0,
+            skills: (p.expertise as string[]) || [],
             image: "bg-indigo-600",
-            hourlyRate: p.hourlyRate || 50
+            hourlyRate: (p.hourlyRate as number) || 50
         };
     });
 

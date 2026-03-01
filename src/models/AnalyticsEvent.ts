@@ -3,7 +3,7 @@ import mongoose, { Document, Model } from "mongoose";
 export interface IAnalyticsEvent extends Document {
     eventName: string;
     userId?: mongoose.Types.ObjectId;
-    properties?: any;
+    properties?: Record<string, unknown>;
     createdAt: Date;
 }
 
