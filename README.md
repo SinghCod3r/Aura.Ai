@@ -42,27 +42,28 @@ cp .env.example .env.local
 Inside `.env.local`, you must populate the following critical keys:
 
 ```env
-# MongoDB Connection
-MONGODB_URI="mongodb+srv://<username>:<password>@cluster.mongodb.net/aura_ai?retryWrites=true&w=majority"
+# MongoDB
+MONGODB_URI=mongodb+srv://ayushsinghce:Ayushce%401@backendlearningcluster.xtoupdp.mongodb.net/
 
-# Clerk Authentication (Get these from your Clerk Dashboard)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+# Clerk Auth
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_bWFnaWNhbC1kcmFrZS05OS5jbGVyay5hY2NvdW50cy5kZXYk
+CLERK_SECRET_KEY=sk_test_kmnqxqiOo41Rw0qYm3L9MboS6hfekkI1amOTUaIuhJ
+CLERK_WEBHOOK_SECRET=whsec_reZR6pjYh9N8Igg68bWmV2sOT3NPuq1f
 
-# Clerk Webhook Secret (Needed to sync Clerk Users to MongoDB automatically)
-CLERK_WEBHOOK_SECRET=whsec_...
+# Razorpay
+RAZORPAY_KEY_ID=rzp_test_...  
+RAZORPAY_KEY_SECRET=...     
+RAZORPAY_WEBHOOK_SECRET=rzp_webhook_secret
 
-# Razorpay Payments (Test Mode Keys)
-NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_...
-RAZORPAY_KEY_SECRET=...
-RAZORPAY_WEBHOOK_SECRET="..." # Create a secret for testing local webhooks or skip if not utilizing ngrok
+# Brevo (Email)
+BREVO_API_KEY=xkeysib-...
 
-# Admin Overrides
-NEXT_PUBLIC_ADMIN_EMAIL="your-email@example.com"
+# Telegram Bot
+TELEGRAM_BOT_TOKEN=1234567890:AA...
+
+# Base URL (for callbacks/redirects)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
 ```
 
 ### 5. Run the Development Server
