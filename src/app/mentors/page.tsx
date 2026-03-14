@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, Filter, Star, MapPin, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import connectToDatabase from '@/lib/mongoose';
-import { User, MentorProfile } from '@/models';
+import { User, MentorProfile, DUMMY_MENTORS } from '@/models';
 import MentorCard from './MentorCard';
 
 export default async function MentorsPage() {
@@ -15,7 +15,7 @@ export default async function MentorsPage() {
     }).lean();
 
     // Map DB data to match the UI shape
-    const mentors = mentorProfiles.map((p: any) => {
+    let mentors = mentorProfiles.map((p: any) => {
         const user = p.userId;
         return {
             id: p._id.toString(),
@@ -31,6 +31,15 @@ export default async function MentorsPage() {
             hourlyRate: p.hourlyRate || 50
         };
     });
+
+    // Use dummy mentors if none are found in the DB
+    if (mentors.length === 0) {
+        mentors = DUMMY_MENTORS.map(m => ({
+            ...m,
+            userId: m.id, // For dummy data, use same ID
+            skills: m.expertise // Explicitly map expertise to skills
+        }));
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 py-12 lg:py-20">

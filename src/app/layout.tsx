@@ -25,7 +25,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="scroll-smooth">
         <head>
-          <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+          <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
         </head>
         <body
           className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col bg-white text-slate-900`}

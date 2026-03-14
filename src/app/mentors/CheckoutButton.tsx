@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
+import { useAuth } from "@clerk/nextjs";
+import { LogIn } from "lucide-react";
 
 interface CheckoutButtonProps {
     mentorId: string;
@@ -12,12 +14,18 @@ interface CheckoutButtonProps {
 }
 
 export default function CheckoutButton({ mentorId, serviceId, serviceName, price }: CheckoutButtonProps) {
+    const { isSignedIn, userId } = useAuth();
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Simple state for Date/Time picking
     const [selectedDate, setSelectedDate] = useState<string>("");
     const [selectedTime, setSelectedTime] = useState<string>("");
+
+    // Student identity details
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
 
     const handlePayment = async () => {
         if (!selectedDate || !selectedTime) {
@@ -46,11 +54,32 @@ export default function CheckoutButton({ mentorId, serviceId, serviceName, price
 
             const data = await response.json();
 
-            if (!response.ok) {
+            if (!response.ok || data.error_code === "AUTH_REQUIRED") {
+                if (data.error_code === "AUTH_REQUIRED") {
+                    toast.dismiss(loadingToast);
+                    toast.error(data.message || "Please sign in to continue");
+                    // Optionally redirect to sign-in after a delay
+                    setTimeout(() => {
+                        window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.href)}`;
+                    }, 2000);
+                    return;
+                }
                 throw new Error(data.error || "Failed to initiate booking");
             }
 
             toast.dismiss(loadingToast);
+
+            // Handle Mock Payment Success
+            if (data.isMock) {
+                toast.success("Booking confirmed! Redirecting to your dashboard...", { duration: 4000 });
+                setIsModalOpen(false);
+                setTimeout(() => {
+                    window.location.href = "/dashboard?payment=success";
+                }, 2000);
+                return;
+            }
+
+            // Real Razorpay Flow
             setIsModalOpen(false); // Close modal on success
 
             // 2. Initialize Razorpay Client SDK
@@ -68,9 +97,9 @@ export default function CheckoutButton({ mentorId, serviceId, serviceName, price
                     }, 2000);
                 },
                 prefill: {
-                    name: "Aura.Ai Student",
-                    email: "student@example.com",
-                    contact: "9999999999",
+                    name: name || data.user?.name || "Aura.Ai Student",
+                    email: email || data.user?.email || "student@example.com",
+                    contact: phone || "9999999999",
                 },
                 theme: {
                     color: "#4f46e5", // Indigo-600
@@ -166,6 +195,33 @@ export default function CheckoutButton({ mentorId, serviceId, serviceName, price
                                     ))}
                                 </div>
                             </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-3">Your Details</label>
+                                <div className="space-y-3">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Full Name" 
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <input 
+                                        type="email" 
+                                        placeholder="Email Address" 
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <input 
+                                        type="tel" 
+                                        placeholder="Phone Number" 
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         <div className="p-6 border-t border-slate-100 flex gap-3 bg-slate-50">
@@ -180,9 +236,9 @@ export default function CheckoutButton({ mentorId, serviceId, serviceName, price
                             <Button
                                 className="flex-1 shadow-md shadow-indigo-600/20"
                                 onClick={handlePayment}
-                                disabled={loading || !selectedDate || !selectedTime}
+                                disabled={loading || !selectedDate || !selectedTime || !name || !email || !phone}
                             >
-                                {loading ? "Processing..." : `Pay ₹${price}`}
+                                {loading ? "Processing..." : mentorId.toString().startsWith("dummy-") || isSignedIn ? `Pay ₹${price}` : "Sign In to Book"}
                             </Button>
                         </div>
                     </div>

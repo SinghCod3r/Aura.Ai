@@ -36,41 +36,89 @@ export async function POST(req: Request) {
             const paymentEntity = event.payload.payment.entity;
             const orderId = paymentEntity.order_id;
             const paymentId = paymentEntity.id;
+            const notes = paymentEntity.notes || {};
+            const bookingId = notes.bookingId;
 
-            // Find the booking corresponding to this receipt / order
-            // Assuming we stored bookingId in the notes, but since we didn't initially,
-            // we'll find payment by orderId if we pre-created it, or create it now.
+            if (bookingId) {
+                const payment = await Payment.findOneAndUpdate(
+                    { razorpayOrderId: orderId },
+                    { razorpayPaymentId: paymentId, status: "SUCCESS" },
+                    { new: true }
+                );
 
-            // Let's create payment record
-            const paymentRecord = await Payment.create({
-                razorpayOrderId: orderId,
-                razorpayPaymentId: paymentId,
-                amount: paymentEntity.amount / 100, // convert paise to INR
-                currency: paymentEntity.currency,
-                status: "SUCCESS"
-            });
+                if (payment) {
+                    const booking = await Booking.findByIdAndUpdate(bookingId, {
+                        status: "CONFIRMED",
+                        paymentId: payment._id
+                    }).populate([
+                        { path: 'studentId', model: User },
+                        { path: 'mentorId', model: MentorProfile, populate: { path: 'userId', model: User } },
+                        { path: 'slotId' }
+                    ]);
 
-            // Find booking which matches the order (actually we should have created Payment in PENDING state during booking API, let's just find booking by receipt if available or we update it)
-            // For robust implementation, we'll assume receipt matches the booking ID
-            // If we used receipt: `receipt_${booking._id}` in the order creation
+                    if (booking) {
+                        const student = booking.studentId as any;
+                        const mentorProfile = booking.mentorId as any;
+                        const mentor = mentorProfile.userId as any;
+                        const slot = booking.slotId as any;
 
-            const orderNotes = event.payload.order?.entity?.notes || {}; // If fetched
-            // We will need to query razorpay API or rely on 'notes' to link payment to booking 
-            // Mongoose id from receipt if passed during order creation, Razorpay includes receipt in payment entity if it was in the order
-            // But typically, a `receipt` field is not strongly propagated unless it's in `notes`.
-            // Let's just assume we store bookingId in notes.bookingId in a real scenario
-            // Fallback: If no booking context is found here, log it.
+                        const dateStr = new Date(slot.startTime).toLocaleDateString();
+                        const timeStr = new Date(slot.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            // In this system, we'll try to find user to notify (Assuming we have user info)
-            // Since this is a demo structure, we'll simulate the update
-            // booking = await Booking.findOne({ ... });
-            // update payment status
-            // ...
+                        // 1. Notify Student (Email)
+                        await sendEmail({
+                            to: [{ email: student.email, name: student.name || "Student" }],
+                            subject: "Mentorship Session Confirmed - Aura.Ai",
+                            htmlContent: `
+                                <h1>Booking Confirmed!</h1>
+                                <p>Hi ${student.name}, your mentorship session with <b>${mentor.name}</b> is confirmed.</p>
+                                <p><b>Date:</b> ${dateStr}<br><b>Time:</b> ${timeStr}</p>
+                                <p>You can view details in your dashboard.</p>
+                            `
+                        });
+
+                        // 2. Notify Mentor (Email & Telegram)
+                        await sendEmail({
+                            to: [{ email: mentor.email, name: mentor.name || "Mentor" }],
+                            subject: "New Mentorship Booking - Aura.Ai",
+                            htmlContent: `
+                                <h1>New Booking Received!</h1>
+                                <p>Hi ${mentor.name}, a new student (<b>${student.name}</b>) has booked a session with you.</p>
+                                <p><b>Date:</b> ${dateStr}<br><b>Time:</b> ${timeStr}</p>
+                            `
+                        });
+
+                        if (mentor.telegramId) {
+                            await sendTelegramMessage(mentor.telegramId, 
+                                `🚀 *New Booking Confirmed!*\n\n` +
+                                `👤 *Student:* ${student.name}\n` +
+                                `📅 *Date:* ${dateStr}\n` +
+                                `⏰ *Time:* ${timeStr}\n\n` +
+                                `Check your dashboard for details.`
+                            );
+                        }
+                    }
+                }
+            }
         }
 
         if (event.event === "payment.failed") {
-            // Mark booking FAILED
-            // Free slot
+            const paymentEntity = event.payload.payment.entity;
+            const orderId = paymentEntity.order_id;
+            
+            const payment = await Payment.findOneAndUpdate(
+                { razorpayOrderId: orderId },
+                { status: "FAILED" }
+            );
+
+            if (payment) {
+                const booking = await Booking.findByIdAndUpdate(payment.bookingId, { status: "FAILED" });
+                if (booking) {
+                    // CRITICAL: Release the slot so others can book it
+                    const AvailabilitySlot = (await import("@/models")).AvailabilitySlot;
+                    await AvailabilitySlot.findByIdAndUpdate(booking.slotId, { isBooked: false });
+                }
+            }
         }
 
         return NextResponse.json({ status: "ok" });

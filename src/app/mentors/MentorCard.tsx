@@ -81,11 +81,21 @@ export default function MentorCard({ mentor }: { mentor: Mentor }) {
 
             {/* Skills Tags */}
             <div className="flex flex-wrap gap-2 mb-6">
-                {mentor.skills.map((skill: string) => (
+                {mentor.skills?.map((skill: string) => (
                     <span key={skill} className="px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-md">
                         {skill}
                     </span>
                 ))}
+            </div>
+
+            {/* Book Mentorship Button (Direct Access) */}
+            <div className="mb-4">
+                <CheckoutButton
+                    mentorId={mentor.userId || mentor.id}
+                    serviceId="svc_default_mentorship"
+                    serviceName="1:1 Mentorship Session"
+                    price={mentor.hourlyRate || 50}
+                />
             </div>
 
             {/* Expand / Collapse Button */}
@@ -94,7 +104,7 @@ export default function MentorCard({ mentor }: { mentor: Mentor }) {
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="w-full flex items-center justify-between font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors mb-2"
             >
-                {isExpanded ? "Hide Services" : "View Profile & Services"}
+                {isExpanded ? "Hide Other Services" : "View Services"}
                 {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
 
