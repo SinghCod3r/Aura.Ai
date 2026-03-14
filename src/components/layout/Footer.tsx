@@ -48,7 +48,7 @@ export default function Footer() {
                 <div className="mt-16 border-t border-slate-200/60 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm font-medium text-slate-400">
                     <p>© {new Date().getFullYear()} Aura.Ai Platform. All rights reserved.</p>
                     <div className="flex gap-4">
-                        <span className="text-slate-300">Made with AI</span>
+                        <span className="text-slate-300">Made with Aura.Ai</span>
                     </div>
                 </div>
             </div>

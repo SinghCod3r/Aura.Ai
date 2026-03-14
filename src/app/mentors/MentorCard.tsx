@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Star, MapPin, Briefcase, ChevronDown, ChevronUp } from "lucide-react";
+import { Star, MapPin, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CheckoutButton from "./CheckoutButton";
+import Link from "next/link";
 
 interface Mentor {
     id: string;
@@ -20,32 +19,6 @@ interface Mentor {
 }
 
 export default function MentorCard({ mentor }: { mentor: Mentor }) {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    const PRICING_TIERS = [
-        {
-            id: "svc_resume",
-            name: "Resume Review",
-            price: 99,
-            originalPrice: 199,
-            description: "Detailed feedback to get your resume ATS-ready and standing out."
-        },
-        {
-            id: "svc_interview",
-            name: "Interview Prep",
-            price: 299,
-            originalPrice: 499,
-            description: "Mock interview session with actionable feedback on your answers."
-        },
-        {
-            id: "svc_dsa",
-            name: "DSA 1:1",
-            price: 699,
-            originalPrice: 999,
-            description: "Intensive 1-on-1 pair programming and algorithm problem solving."
-        }
-    ];
-
     return (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-indigo-300 transition-all duration-300 group flex flex-col">
 
@@ -88,55 +61,15 @@ export default function MentorCard({ mentor }: { mentor: Mentor }) {
                 ))}
             </div>
 
-            {/* Book Mentorship Button (Direct Access) */}
-            <div className="mb-4">
-                <CheckoutButton
-                    mentorId={mentor.userId || mentor.id}
-                    serviceId="svc_default_mentorship"
-                    serviceName="1:1 Mentorship Session"
-                    price={mentor.hourlyRate || 50}
-                />
+            {/* View Profile Button */}
+            <div className="mt-auto">
+                <Button asChild className="w-full font-semibold shadow-md shadow-indigo-600/10">
+                    <Link href={`/mentors/${mentor.id || mentor.userId}`}>
+                        View Profile & Book
+                    </Link>
+                </Button>
             </div>
-
-            {/* Expand / Collapse Button */}
-            <Button
-                variant="outline"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-between font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors mb-2"
-            >
-                {isExpanded ? "Hide Other Services" : "View Services"}
-                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-
-            {/* Expanded Content: Pricing Tiers */}
-            {isExpanded && (
-                <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Available Services</h4>
-
-                    {PRICING_TIERS.map((tier) => (
-                        <div key={tier.id} className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/50 hover:bg-indigo-50 transition-colors">
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <p className="font-bold text-slate-900">{tier.name}</p>
-                                    <p className="text-xs text-slate-600 mt-1">{tier.description}</p>
-                                </div>
-                                <div className="text-right ml-4 flex-shrink-0">
-                                    <p className="text-xs text-slate-500 line-through">₹{tier.originalPrice}</p>
-                                    <p className="text-lg font-extrabold text-indigo-600">₹{tier.price}</p>
-                                </div>
-                            </div>
-                            <div className="mt-3">
-                                <CheckoutButton
-                                    mentorId={mentor.userId || mentor.id}
-                                    serviceId={tier.id}
-                                    serviceName={tier.name}
-                                    price={tier.price}
-                                />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 }
+
