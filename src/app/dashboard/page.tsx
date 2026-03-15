@@ -15,6 +15,8 @@ export default async function DashboardPage() {
         redirect('/sign-in');
     }
 
+    await connectToDatabase();
+
     let user = await User.findOne({ clerkId: clerkUser.id });
 
     if (!user) {
