@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import { useAuth } from "@clerk/nextjs";
-import { LogIn } from "lucide-react";
+import { useClerk } from "@clerk/nextjs";
 
 interface CheckoutButtonProps {
     mentorId: string;
@@ -13,237 +14,315 @@ interface CheckoutButtonProps {
     price: number;
 }
 
-export default function CheckoutButton({ mentorId, serviceId, serviceName, price }: CheckoutButtonProps) {
-    const { isSignedIn, userId } = useAuth();
-    const [loading, setLoading] = useState(false);
+export default function CheckoutButton({
+    mentorId,
+    serviceId,
+    serviceName,
+    price,
+}: CheckoutButtonProps) {
+    const { isSignedIn } = useAuth();
+    const { openSignIn } = useClerk();
+
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-    // Simple state for Date/Time picking
-    const [selectedDate, setSelectedDate] = useState<string>("");
-    const [selectedTime, setSelectedTime] = useState<string>("");
+    const [selectedDate, setSelectedDate] = useState("");
+    const [selectedTime, setSelectedTime] = useState("");
 
-    // Student identity details
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
 
+    useEffect(() => {
+        if (isModalOpen) document.body.style.overflow = "hidden";
+        else document.body.style.overflow = "auto";
+    }, [isModalOpen]);
+
+    const nextDays = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() + i + 1);
+        return d.toISOString().split("T")[0];
+    });
+
+    const timeSlots = [
+        "09:00 AM",
+        "11:00 AM",
+        "02:00 PM",
+        "04:30 PM",
+        "07:00 PM",
+    ];
+
+    const redirectToLogin = () => {
+        toast.error("Please login to book");
+
+        openSignIn({
+            redirectUrl: "/mentors",
+        });
+    };
+
     const handlePayment = async () => {
+        if (!isSignedIn) {
+            redirectToLogin();
+            return;
+        }
+
         if (!selectedDate || !selectedTime) {
-            toast.error("Please select a date and time");
+            toast.error("Select date & time");
             return;
         }
 
         setLoading(true);
-        const loadingToast = toast.loading("Initializing secure checkout...");
 
         try {
-            // 1. Create a booking and Razorpay order in our backend
-            const response = await fetch("/api/bookings", {
+            const res = await fetch("/api/bookings", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     mentorId,
                     serviceId,
-                    serviceName,
                     price,
-                    // Passing dynamic slot data up instead of a pre-existing slot ID
                     scheduledDate: selectedDate,
-                    scheduledTime: selectedTime
+                    scheduledTime: selectedTime,
                 }),
             });
 
-            const data = await response.json();
+            const data = await res.json();
 
-            if (!response.ok || data.error_code === "AUTH_REQUIRED") {
-                if (data.error_code === "AUTH_REQUIRED") {
-                    toast.dismiss(loadingToast);
-                    toast.error(data.message || "Please sign in to continue");
-                    // Optionally redirect to sign-in after a delay
-                    setTimeout(() => {
-                        window.location.href = `/sign-in?redirect_url=${encodeURIComponent(window.location.href)}`;
-                    }, 2000);
-                    return;
-                }
-                throw new Error(data.error || "Failed to initiate booking");
-            }
+            if (!res.ok) throw new Error(data.error);
 
-            toast.dismiss(loadingToast);
+            setIsModalOpen(false);
 
-            // Handle Mock Payment Success
-            if (data.isMock) {
-                toast.success("Booking confirmed! Redirecting to your dashboard...", { duration: 4000 });
-                setIsModalOpen(false);
-                setTimeout(() => {
-                    window.location.href = "/dashboard?payment=success";
-                }, 2000);
-                return;
-            }
-
-            // Real Razorpay Flow
-            setIsModalOpen(false); // Close modal on success
-
-            // 2. Initialize Razorpay Client SDK
             const options = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 amount: data.amount,
                 currency: data.currency,
                 name: "Aura.Ai Mentorship",
-                description: `Book: ${serviceName} on ${selectedDate} at ${selectedTime}`,
+                description: serviceName,
                 order_id: data.orderId,
-                handler: function (response: any) {
-                    toast.success("Payment successful! Redirecting to your dashboard...", { duration: 4000 });
-                    setTimeout(() => {
+
+                handler: async function (response: any) {
+                    try {
+                        await fetch("/api/verify-payment", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                                bookingId: data.bookingId,
+                            }),
+                        });
+
+                        toast.success("Payment Successful");
+
                         window.location.href = "/dashboard?payment=success";
-                    }, 2000);
+                    } catch (err) {
+                        console.error("Payment verification failed");
+
+                        toast.error("Payment verified but booking update failed");
+
+                        window.location.href = "/dashboard";
+                    }
                 },
+
                 prefill: {
-                    name: name || data.user?.name || "Aura.Ai Student",
-                    email: email || data.user?.email || "student@example.com",
-                    contact: phone || "9999999999",
+                    name,
+                    email,
+                    contact: phone,
                 },
+
                 theme: {
-                    color: "#4f46e5", // Indigo-600
+                    color: "#4f46e5",
                 },
             };
 
-            // @ts-ignore
+            //@ts-ignore
             const rzp = new window.Razorpay(options);
 
-            rzp.on('payment.failed', function (response: any) {
-                toast.error(`Payment failed: ${response.error.description}`);
+            rzp.on("payment.failed", function () {
+                toast.error("Payment failed or cancelled");
             });
 
             rzp.open();
-
-        } catch (error: any) {
-            toast.dismiss(loadingToast);
-            toast.error(error.message || "An error occurred during checkout");
-        } finally {
-            setLoading(false);
+        } catch (err: any) {
+            toast.error(err.message);
         }
+
+        setLoading(false);
     };
-
-    // Generate upcoming 7 days
-    const nextDays = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() + i + 1); // Start from tomorrow
-        return d.toISOString().split('T')[0];
-    });
-
-    // Mock Time Slots
-    const timeSlots = ["09:00 AM", "11:00 AM", "02:00 PM", "04:30 PM", "07:00 PM"];
 
     return (
         <>
+            {/* BUTTON */}
             <Button
-                onClick={() => setIsModalOpen(true)}
-                className="w-full font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white transition-colors border-none shadow-none"
+                onClick={() => {
+
+                    if (!isSignedIn) {
+                        redirectToLogin();
+                        return;
+                    }
+
+                    setIsModalOpen(true);
+                }}
+                className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
             >
-                Choose Slot & Book (₹{price})
+                {!isSignedIn
+                    ? "Login to Book"
+                    : `Choose Slot & Book (₹${price})`}
             </Button>
 
-            {/* Simple Native Modal / Overlay */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-slate-100 bg-slate-50">
-                            <h3 className="text-xl font-bold text-slate-900">Schedule Session</h3>
-                            <p className="text-sm text-slate-500 mt-1">{serviceName}</p>
-                        </div>
+            {/* MODAL */}
+            {isModalOpen &&
+                createPortal(
 
-                        <div className="p-6 space-y-6">
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-3">Select Date</label>
-                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                                    {nextDays.map((dateStr) => {
-                                        const dateObj = new Date(dateStr);
-                                        const dayName = dateObj.toLocaleDateString("en-US", { weekday: "short" });
-                                        const dayNum = dateObj.getDate();
-                                        const isSelected = selectedDate === dateStr;
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
 
-                                        return (
-                                            <button
-                                                key={dateStr}
-                                                onClick={() => setSelectedDate(dateStr)}
-                                                className={`flex-shrink-0 flex flex-col items-center justify-center p-3 rounded-xl border min-w-[64px] transition-all
-                                                    ${isSelected
-                                                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                                                        : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-indigo-50/50'}`}
-                                            >
-                                                <span className={`text-xs font-semibold uppercase ${isSelected ? 'text-indigo-100' : 'text-slate-500'}`}>{dayName}</span>
-                                                <span className="text-lg font-bold mt-1">{dayNum}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                        <div
+                            className="absolute inset-0"
+                            onClick={() => setIsModalOpen(false)}
+                        />
+
+                        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl">
+
+                            <div className="p-6 border-b">
+                                <h2 className="text-xl font-bold">Schedule Session</h2>
+                                <p className="text-sm text-gray-500">{serviceName}</p>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-3">Select Time</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {timeSlots.map(time => (
-                                        <button
-                                            key={time}
-                                            onClick={() => setSelectedTime(time)}
-                                            className={`p-2 rounded-lg border text-sm font-medium transition-all
-                                                ${selectedTime === time
-                                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                                                    : 'bg-white border-slate-200 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/50'}`}
-                                        >
-                                            {time}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2">
 
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-3">Your Details</label>
-                                <div className="space-y-3">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Full Name" 
+                                {/* LEFT SLOT */}
+                                <div className="p-6 border-r space-y-6">
+
+                                    <div>
+
+                                        <h3 className="font-semibold mb-3">
+                                            Select Date
+                                        </h3>
+
+                                        <div className="flex flex-wrap gap-2">
+
+                                            {nextDays.map((date) => {
+
+                                                const d = new Date(date);
+
+                                                const day = d.toLocaleDateString("en-US", { weekday: "short" });
+                                                const month = d.toLocaleDateString("en-US", { month: "short" });
+                                                const num = d.getDate();
+
+                                                return (
+                                                    <button
+                                                        key={date}
+                                                        onClick={() => setSelectedDate(date)}
+                                                        className={`flex flex-col items-center justify-center p-3 rounded-lg border min-w-[70px]
+                                                            ${selectedDate === date
+                                                                ? "bg-indigo-600 text-white"
+                                                                : "bg-white"
+                                                            }`}
+                                                    >
+                                                        <span className="text-xs">{day}</span>
+                                                        <span className="text-lg font-bold">{num}</span>
+                                                        <span className="text-xs">{month}</span>
+                                                    </button>
+                                                );
+
+                                            })}
+
+                                        </div>
+
+                                    </div>
+
+                                    <div>
+
+                                        <h3 className="font-semibold mb-3">
+                                            Select Time
+                                        </h3>
+
+                                        <div className="grid grid-cols-2 gap-2">
+
+                                            {timeSlots.map((time) => (
+                                                <button
+                                                    key={time}
+                                                    onClick={() => setSelectedTime(time)}
+                                                    className={`p-2 border rounded-lg text-sm
+                                                            ${selectedTime === time
+                                                            ? "bg-indigo-600 text-white"
+                                                            : ""
+                                                        }`}
+                                                >
+                                                    {time}
+                                                </button>
+                                            ))}
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                {/* RIGHT DETAILS */}
+                                <div className="p-6 space-y-4">
+
+                                    <h3 className="font-semibold">
+                                        Your Details
+                                    </h3>
+
+                                    <input
+                                        placeholder="Full Name"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="w-full border rounded-lg p-2"
                                     />
-                                    <input 
-                                        type="email" 
-                                        placeholder="Email Address" 
+
+                                    <input
+                                        placeholder="Email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="w-full border rounded-lg p-2"
                                     />
-                                    <input 
-                                        type="tel" 
-                                        placeholder="Phone Number" 
+
+                                    <input
+                                        placeholder="Phone"
                                         value={phone}
                                         onChange={(e) => setPhone(e.target.value)}
-                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="w-full border rounded-lg p-2"
                                     />
+
+                                    <Button
+                                        className="w-full mt-4"
+                                        disabled={
+                                            loading ||
+                                            !selectedDate ||
+                                            !selectedTime ||
+                                            !name ||
+                                            !email ||
+                                            !phone
+                                        }
+                                        onClick={handlePayment}
+                                    >
+                                        {loading
+                                            ? "Processing..."
+                                            : `Pay ₹${price}`}
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={() => setIsModalOpen(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+
                                 </div>
+
                             </div>
+
                         </div>
 
-                        <div className="p-6 border-t border-slate-100 flex gap-3 bg-slate-50">
-                            <Button
-                                variant="outline"
-                                className="flex-1"
-                                onClick={() => setIsModalOpen(false)}
-                                disabled={loading}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                className="flex-1 shadow-md shadow-indigo-600/20"
-                                onClick={handlePayment}
-                                disabled={loading || !selectedDate || !selectedTime || !name || !email || !phone}
-                            >
-                                {loading ? "Processing..." : mentorId.toString().startsWith("dummy-") || isSignedIn ? `Pay ₹${price}` : "Sign In to Book"}
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                    </div>,
+
+                    document.body
+                )}
         </>
     );
 }

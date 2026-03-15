@@ -5,6 +5,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Toaster } from "react-hot-toast";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -25,7 +26,10 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="scroll-smooth">
         <head>
-          <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
+          <Script
+  src="https://checkout.razorpay.com/v1/checkout.js"
+  strategy="beforeInteractive"
+/>
         </head>
         <body
           className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col bg-white text-slate-900`}
