@@ -24,9 +24,9 @@ export async function POST(req: Request) {
 
         if (!clerkId) {
             return NextResponse.json({
-            error: "Authentication Required",
-            error_code: "AUTH_REQUIRED"
-        }, { status: 200 });
+                error: "Authentication Required",
+                error_code: "AUTH_REQUIRED"
+            }, { status: 200 });
         }
 
         // FIND USER
@@ -34,19 +34,19 @@ export async function POST(req: Request) {
 
         if (!user) {
 
-        const clerkUser = await currentUser();
+            const clerkUser = await currentUser();
 
-        const email =
-            clerkUser?.emailAddresses?.[0]?.emailAddress ||
-            `user_${Date.now()}@example.com`;
+            const email =
+                clerkUser?.emailAddresses?.[0]?.emailAddress ||
+                `user_${Date.now()}@example.com`;
 
-        const name = clerkUser?.fullName || "New User";
+            const name = clerkUser?.fullName || "New User";
 
-        user = await User.create({
-            clerkId,
-            name,
-            email
-        });
+            user = await User.create({
+                clerkId,
+                name,
+                email
+            });
         }
 
         const parsedDate = new Date(`${scheduledDate} ${scheduledTime}`);
@@ -110,12 +110,7 @@ export async function POST(req: Request) {
             success: true,
             orderId: order.id,
             bookingId: booking._id,
-            amount: order.amount,
-            currency: order.currency,
-            user: {
-                name: user.name,
-                email: user.email
-            }
+            message: "Slot reserved successfully"
         });
 
     } catch (error: any) {
@@ -123,8 +118,8 @@ export async function POST(req: Request) {
         console.error("Booking API Error:", error);
 
         return NextResponse.json({
-        error: "Failed to process booking",
-        details: error.message
+            error: "Failed to process booking",
+            details: error.message
         }, { status: 500 });
     }
 }

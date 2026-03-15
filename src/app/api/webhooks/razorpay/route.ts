@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import connectToDatabase from "@/lib/mongoose";
-import { Booking, Payment, User } from "@/models";
+import { Booking, Payment, User, MentorProfile } from "@/models";
 import { sendEmail } from "@/lib/brevo";
 import { sendTelegramMessage } from "@/lib/telegram";
 
@@ -95,6 +95,16 @@ export async function POST(req: Request) {
                                 `📅 *Date:* ${dateStr}\n` +
                                 `⏰ *Time:* ${timeStr}\n\n` +
                                 `Check your dashboard for details.`
+                            );
+                        }
+
+                        if (student.telegramId) {
+                            await sendTelegramMessage(student.telegramId,
+                                `✅ *Payment Successful!*\n\n` +
+                                `Your session with *${mentor.name}* is confirmed.\n\n` +
+                                `📅 *Date:* ${dateStr}\n` +
+                                `⏰ *Time:* ${timeStr}\n\n` +
+                                `See you there! 🚀`
                             );
                         }
                     }

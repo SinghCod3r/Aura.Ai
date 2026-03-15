@@ -15,7 +15,7 @@ const BookingSchema = new mongoose.Schema<IBooking>(
     {
         studentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         mentorId: { type: mongoose.Schema.Types.ObjectId, ref: "MentorProfile", required: true, index: true },
-        serviceId: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
+        serviceId: { type: mongoose.Schema.Types.Mixed, required: true },
         slotId: { type: mongoose.Schema.Types.ObjectId, ref: "AvailabilitySlot", required: true, unique: true }, // Index for duplicate prevention
         status: { type: String, enum: ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "FAILED"], default: "PENDING" },
         paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", index: true }, // paymentId index

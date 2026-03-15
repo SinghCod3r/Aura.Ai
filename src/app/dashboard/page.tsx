@@ -6,6 +6,7 @@ import { User, Booking, MentorProfile, AssessmentResult, Payment } from '@/model
 import { GraduationCap, Briefcase, Settings, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import ReceiptButton from './ReceiptGenerator';
 
 export default async function DashboardPage() {
     const clerkUser = await currentUser();
@@ -45,10 +46,23 @@ export default async function DashboardPage() {
 
     // Global queries needed across different views
     const assessmentResult = isStudent ? await AssessmentResult.findOne({ userId: user._id }).sort({ createdAt: -1 }) : null;
+    
+    // Enhanced booking query for students to show mentor name and time
     const bookings = await Booking.find({
         $or: [{ studentId: user._id }, { mentorId: user._id }]
-    }).sort({ createdAt: -1 }).limit(5);
+    })
+    .populate({
+        path: 'mentorId',
+        populate: { path: 'userId', select: 'name email' }
+    })
+    .populate('slotId')
+    .sort({ createdAt: -1 })
+    .limit(10);
+
     const payments = isMentor ? await Payment.find({ 'metadata.mentorId': user._id, status: 'SUCCESS' }) : [];
+    
+    // Get related payments for receipts
+    const studentPayments = isStudent ? await Payment.find({ userId: user._id, status: 'SUCCESS' }).lean() : [];
 
     let totalUsers = 0, activeMentors = 0, totalSessions = 0;
     let recentActivity: any[] = [];
@@ -121,26 +135,73 @@ export default async function DashboardPage() {
                                 </div>
 
                                 <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
-                                    <h2 className="text-xl font-bold text-slate-900 mb-4">Recent Bookings</h2>
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-xl font-bold text-slate-900">Upcoming Sessions</h2>
+                                        <Link href="/mentors" className="text-sm text-indigo-600 font-semibold hover:underline">
+                                            Book More
+                                        </Link>
+                                    </div>
+                                    
                                     {upcomingBookings.length > 0 ? (
-                                        <ul className="space-y-4">
-                                            {upcomingBookings.map((b: any, i: number) => (
-                                                <li key={i} className="flex justify-between items-center p-4 bg-slate-50 rounded-lg border border-slate-100">
-                                                    <div>
-                                                        <p className="font-medium text-slate-900">Mentorship Session</p>
-                                                        <p className="text-sm text-slate-500">Status: {b.status}</p>
+                                        <div className="space-y-4">
+                                            {upcomingBookings.map((b: any, i: number) => {
+                                                const mentor = b.mentorId as any;
+                                                const mentorUser = mentor?.userId as any;
+                                                const slot = b.slotId as any;
+                                                const payment = studentPayments.find(p => p.bookingId?.toString() === b._id.toString());
+                                                
+                                                return (
+                                                    <div key={i} className="flex flex-col sm:flex-row justify-between sm:items-center p-5 bg-slate-50 rounded-xl border border-slate-100 gap-4">
+                                                        <div className="flex items-start gap-4">
+                                                            <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold shrink-0">
+                                                                {mentorUser?.name?.charAt(0) || "M"}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-slate-900">{mentorUser?.name || "AI Mentor"}</p>
+                                                                <p className="text-xs text-slate-500 mb-1">{mentor?.designation || "Mentorship"}</p>
+                                                                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                                                                    <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                                                                        {slot ? new Date(slot.startTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Date TBD'}
+                                                                    </span>
+                                                                    <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                                                                        {slot ? new Date(slot.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Time TBD'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="flex flex-col sm:items-end gap-2">
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full w-fit">
+                                                                Confirmed
+                                                            </span>
+                                                            {payment && (
+                                                                <ReceiptButton 
+                                                                    data={{
+                                                                        bookingId: b._id.toString(),
+                                                                        transactionId: payment.razorpayPaymentId || payment.razorpayOrderId,
+                                                                        date: payment.createdAt.toString(),
+                                                                        studentName: user.name || "Student",
+                                                                        mentorName: mentorUser?.name || "AI Mentor",
+                                                                        serviceName: b.serviceId?.toString() || "Mentorship Session",
+                                                                        amount: payment.amount
+                                                                    }}
+                                                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold border-b border-indigo-200 pb-0.5 w-fit"
+                                                                />
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <Button variant="ghost" size="sm">Details</Button>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                                );
+                                            })}
+                                        </div>
                                     ) : (
-                                        <>
-                                            <p className="text-slate-500 text-sm">No upcoming mentorship sessions.</p>
-                                            <Link href="/mentors" className="inline-flex items-center text-indigo-600 font-semibold mt-4 hover:underline">
-                                                Find a Mentor <ArrowRight className="ml-1 h-4 w-4" />
+                                        <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
+                                            <p className="text-slate-500 mb-4">No upcoming mentorship sessions.</p>
+                                            <Link href="/mentors">
+                                                <Button variant="outline" className="font-semibold">
+                                                    Find a Mentor
+                                                </Button>
                                             </Link>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -183,18 +244,36 @@ export default async function DashboardPage() {
                                 <div className="py-2 text-left">
                                     {upcomingSessions.length > 0 ? (
                                         <ul className="space-y-4">
-                                            {upcomingSessions.map((session: any, index: number) => (
-                                                <li key={index} className="flex justify-between items-center bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                                    <div>
-                                                        <p className="font-semibold text-slate-900">Mentorship Session</p>
-                                                        <p className="text-sm text-slate-500">Student ID: {session.studentId.toString().slice(-6)}</p>
-                                                    </div>
-                                                    <Button variant="outline" size="sm">Join Call</Button>
-                                                </li>
-                                            ))}
+                                            {upcomingSessions.map((session: any, index: number) => {
+                                                const student = session.studentId as any;
+                                                const slot = session.slotId as any;
+                                                return (
+                                                    <li key={index} className="flex justify-between items-center bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold shrink-0">
+                                                                {student?.name?.charAt(0) || "S"}
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-semibold text-slate-900">{student?.name || "Student"}</p>
+                                                                <p className="text-xs text-slate-500">
+                                                                    {slot ? new Date(slot.startTime).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Time TBD'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col items-end gap-2">
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full w-fit">
+                                                                Confirmed
+                                                            </span>
+                                                            <Button variant="outline" size="sm" className="h-8 text-xs">Join Call</Button>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
                                         </ul>
                                     ) : (
-                                        <p className="text-slate-500 text-center py-6">No scheduled sessions for this week.</p>
+                                        <div className="text-center py-10 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
+                                            <p className="text-slate-500 text-sm">No scheduled sessions for this week.</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
