@@ -6,10 +6,20 @@ import { ArrowLeft, CheckCircle2, TrendingUp, AlertCircle, Sparkles, ChevronRigh
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
+interface ReportData {
+    roadmap: string;
+    skillGap: {
+        overallScore: number;
+        strengths: string[];
+        weaknesses: string[];
+    };
+    recommendations: string[];
+}
+
 function ReportContent() {
     const searchParams = useSearchParams();
     const id = searchParams.get('id');
-    const [report, setReport] = useState<any>(null);
+    const [report, setReport] = useState<ReportData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
