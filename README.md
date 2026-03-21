@@ -64,6 +64,8 @@ TELEGRAM_BOT_TOKEN=1234567890:AA...
 # Base URL (for callbacks/redirects)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
+# Local Open-Source ML (Ollama)
+OLLAMA_BASE_URL=http://127.0.0.1:11434
 ```
 
 ### 5. Run the Development Server

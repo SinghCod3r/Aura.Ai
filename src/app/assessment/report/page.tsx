@@ -105,10 +105,9 @@ function ReportContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 animate-in slide-in-from-bottom-8 duration-700">
                     {/* Score Card */}
-                    <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl shadow-slate-200/50 flex flex-col items-center justify-center relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] -mr-16 -mt-16 pointer-events-none"></div>
-                        <h3 className="text-lg font-bold text-slate-500 mb-6 flex items-center uppercase tracking-widest text-sm">
-                            <BarChart3 className="w-4 h-4 mr-2 text-indigo-500" />
+                    <div className="rounded-2xl bg-white p-8 shadow-sm border border-slate-100 flex flex-col items-center justify-center relative overflow-hidden">
+                        <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center">
+                            <BarChart3 className="w-5 h-5 mr-2 text-indigo-600" />
                             Overall Score
                         </h3>
                         <div className="relative flex items-center justify-center">
@@ -118,31 +117,35 @@ function ReportContent() {
                             </svg>
                             <span className="absolute text-5xl font-black text-slate-900">{score}</span>
                         </div>
-                        <p className="mt-6 text-slate-500 text-center font-medium">Out of 100 benchmarked against industry standards.</p>
+                        <p className="mt-6 text-slate-600 text-center text-sm font-medium">Out of 100 benchmarked against industry standards.</p>
                     </div>
 
                     {/* Strengths & Weaknesses */}
                     <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-8">
                         {/* Strengths */}
-                        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl shadow-slate-200/50">
-                            <h3 className="text-lg font-bold text-emerald-600 mb-6 flex items-center pb-4 border-b border-slate-100">
-                                <TrendingUp className="w-5 h-5 mr-2" />
+                        <div className="rounded-2xl bg-white p-8 shadow-sm border border-slate-100">
+                            <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center mb-4 text-emerald-600">
+                                <TrendingUp className="h-5 w-5" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-4 pb-4 border-b border-slate-100">
                                 Core Strengths
                             </h3>
                             <ul className="space-y-4">
                                 {report.skillGap?.strengths?.map((item: string, i: number) => (
                                     <li key={i} className="flex items-start">
                                         <CheckCircle2 className="w-5 h-5 text-emerald-500 mr-3 mt-0.5 flex-shrink-0" />
-                                        <span className="text-slate-700 font-medium leading-relaxed">{item}</span>
+                                        <span className="text-slate-600 font-medium leading-relaxed">{item}</span>
                                     </li>
                                 ))}
                             </ul>
                         </div>
 
                         {/* Weaknesses */}
-                        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl shadow-slate-200/50">
-                            <h3 className="text-lg font-bold text-rose-600 mb-6 flex items-center pb-4 border-b border-slate-100">
-                                <AlertCircle className="w-5 h-5 mr-2" />
+                        <div className="rounded-2xl bg-white p-8 shadow-sm border border-slate-100">
+                            <div className="h-10 w-10 rounded-xl bg-rose-100 flex items-center justify-center mb-4 text-rose-600">
+                                <AlertCircle className="h-5 w-5" />
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-900 mb-4 pb-4 border-b border-slate-100">
                                 Areas for Improvement
                             </h3>
                             <ul className="space-y-4">
@@ -151,7 +154,7 @@ function ReportContent() {
                                         <div className="w-5 h-5 rounded-full bg-rose-100 flex items-center justify-center mr-3 flex-shrink-0 mt-0.5">
                                             <div className="w-2 h-2 rounded-full bg-rose-500"></div>
                                         </div>
-                                        <span className="text-slate-700 font-medium leading-relaxed">{item}</span>
+                                        <span className="text-slate-600 font-medium leading-relaxed">{item}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -160,48 +163,46 @@ function ReportContent() {
                 </div>
 
                 {/* Target Path / Roadmap */}
-                <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-1 lg:p-1.5 shadow-2xl animate-in slide-in-from-bottom-10 duration-1000 mb-12">
-                    <div className="bg-slate-950/90 backdrop-blur-3xl rounded-[22px] lg:rounded-[20px] p-8 lg:p-12 relative overflow-hidden h-full">
-                        {/* Decorations */}
-                        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/20 blur-[120px] rounded-full -mr-40 -mt-20 pointer-events-none"></div>
-                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500/10 blur-[80px] rounded-full -ml-20 -mb-20 pointer-events-none"></div>
-                        
-                        <h3 className="text-2xl font-bold text-white mb-6 flex items-center relative z-10">
-                            <BrainCircuit className="h-8 w-8 text-indigo-400 mr-3" />
-                            Your Personalized Growth Roadmap
-                        </h3>
-                        
-                        <p className="text-slate-300 mb-10 text-lg sm:text-xl leading-relaxed border-l-4 border-indigo-500/50 pl-6 py-2 relative z-10">
-                            {report.roadmap}
-                        </p>
+                <div className="rounded-2xl bg-white p-8 md:p-12 shadow-sm border border-indigo-100 animate-in slide-in-from-bottom-10 duration-1000 mb-12 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                    
+                    <div className="h-12 w-12 rounded-xl bg-indigo-100 flex items-center justify-center mb-6 text-indigo-600">
+                        <BrainCircuit className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-6 relative z-10">
+                        Your Personalized Growth Roadmap
+                    </h3>
+                    
+                    <p className="text-slate-600 mb-10 text-lg leading-relaxed border-l-4 border-indigo-200 pl-6 py-2 relative z-10">
+                        {report.roadmap}
+                    </p>
 
-                        <div className="relative z-10 bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 backdrop-blur-md">
-                            <h4 className="font-bold text-white uppercase tracking-wider text-sm mb-6 flex items-center">
-                                <Sparkles className="h-4 w-4 mr-2 text-amber-400" /> Recommended Next Steps
-                            </h4>
-                            <ul className="space-y-4 text-slate-300">
-                                {report.recommendations?.map((rec: string, i: number) => (
-                                    <li key={i} className="flex items-start group">
-                                        <div className="bg-indigo-500/20 rounded-full p-1.5 mr-4 mt-0.5 group-hover:bg-indigo-500/40 transition-colors border border-indigo-500/30">
-                                            <ChevronRight className="h-4 w-4 text-indigo-300" />
-                                        </div>
-                                        <span className="text-lg font-medium">{rec}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                    <div className="relative z-10 bg-slate-50 border border-slate-100 rounded-xl p-6 sm:p-8">
+                        <h4 className="font-bold text-slate-900 uppercase tracking-wider text-sm mb-6 flex items-center">
+                            <Sparkles className="h-4 w-4 mr-2 text-indigo-500" /> Recommended Next Steps
+                        </h4>
+                        <ul className="space-y-4 text-slate-600">
+                            {report.recommendations?.map((rec: string, i: number) => (
+                                <li key={i} className="flex items-start group">
+                                    <div className="bg-white rounded-full p-1.5 mr-4 mt-0.5 shadow-sm border border-slate-200">
+                                        <ChevronRight className="h-4 w-4 text-indigo-600" />
+                                    </div>
+                                    <span className="text-lg font-medium">{rec}</span>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col sm:flex-row justify-center gap-6 animate-in fade-in duration-1000 delay-300">
+                <div className="flex flex-col sm:flex-row justify-center gap-4 animate-in fade-in duration-1000 delay-300">
                     <Link href="/dashboard">
-                        <Button size="lg" className="w-full sm:w-auto text-base h-14 px-8 font-bold shadow-xl shadow-indigo-600/20 bg-indigo-600 hover:bg-indigo-700 transition-all">
+                        <Button size="lg" className="w-full sm:w-auto font-semibold gap-2 shadow-indigo-600/20 shadow-lg">
                             View on Dashboard
                         </Button>
                     </Link>
                     <Link href="/mentors">
-                        <Button size="lg" variant="outline" className="w-full sm:w-auto text-base h-14 px-8 border-2 border-slate-200 hover:bg-slate-50 transition-colors font-semibold bg-white text-slate-800">
+                        <Button size="lg" variant="outline" className="w-full sm:w-auto font-semibold bg-white">
                             Browse Matching Mentors
                         </Button>
                     </Link>
