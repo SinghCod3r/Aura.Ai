@@ -11,6 +11,7 @@ interface InterviewState {
     difficultyMultiplier: number; // 1-10 scale
     detectedKeywords: string[];
     domain: string;
+    intent?: 'brief' | 'detailed' | 'struggling' | 'clarification';
 }
 
 // Common technical stop words to ignore when calculating density
@@ -64,8 +65,7 @@ export const determineNextAction = (state: InterviewState): string => {
     }
 
     // Policy: User is asking for clarification/rephrasing
-    // We cast it to any here to satisfy the interface if we haven't strictly added it yet, but theoretically the state object should carry it.
-    if ((state as any).intent === 'clarification') {
+    if (state.intent === 'clarification') {
         return `No problem, let me rephrase. I'm asking about your practical experience with ${pivotWord}. Tell me about a specific time you had to use it in a project, and what challenges you faced.`;
     }
 
@@ -105,7 +105,7 @@ export const determineNextAction = (state: InterviewState): string => {
 };
 
 // 3. FINAL EVALUATION POLICY
-export const evaluateSessionPolicy = (history: any[], domain: string, finalDifficulty: number) => {
+export const evaluateSessionPolicy = (history: { role: string; answer: string }[], domain: string, finalDifficulty: number) => {
     let totalScore = 50; // Base score
     
     // Factor 1: The peak technical depth reached (Difficulty represents RL Reward max)
@@ -114,7 +114,7 @@ export const evaluateSessionPolicy = (history: any[], domain: string, finalDiffi
 
     // Factor 2: Verbal Fluency
     let totalWords = 0;
-    history.forEach((h: any) => totalWords += h.answer.split(' ').length);
+    history.forEach((h: { role: string; answer: string }) => totalWords += h.answer.split(' ').length);
     const avgWords = history.length > 0 ? (totalWords / history.length) : 0;
     
     if (avgWords > 40) totalScore += 15;

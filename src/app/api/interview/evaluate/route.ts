@@ -13,6 +13,10 @@ export async function POST(req: Request) {
 
         const body = await req.json();
         const { context, history } = body;
+
+        if (!context || !history || !Array.isArray(history) || history.length === 0) {
+            return NextResponse.json({ error: "Invalid interview body or empty history" }, { status: 400 });
+        }
         
         let dbUser = null;
         try {
@@ -36,7 +40,7 @@ export async function POST(req: Request) {
         const { score, strengths, weaknesses, roadmap: roadmapString, recommendations } = evaluationStats;
 
         // Format answers for DB schema
-        const dbAnswers = history.map((item: any, i: number) => ({
+        const dbAnswers = history.map((item: { answer: string }, i: number) => ({
             questionId: `q_${i}`,
             answerValue: item.answer || "No answer provided"
         }));
@@ -69,8 +73,9 @@ export async function POST(req: Request) {
             }
         }, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Interview Evaluation error:", error);
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

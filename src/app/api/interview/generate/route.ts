@@ -30,6 +30,9 @@ export async function POST(req: Request) {
             newQuestion = `Hi ${clerkUser?.firstName || 'there'}, my name is Aura. Regarding your goal of ${goal} in ${primaryDomain}... You mentioned your biggest challenge is "${deepDiveAnswer}". Since you have ${experience} experience, tell me exactly how you plan to overcome that specific challenge.`;
         } else {
             // 1. Analyze the state of the candidate's last answer
+            if (!history || history.length === 0) {
+                 return NextResponse.json({ error: "Interview history is empty or invalid" }, { status: 400 });
+            }
             const lastAnswer = history[history.length - 1].answer;
             const stateResult = calculateAnswerState(lastAnswer, currentDifficulty);
             
@@ -103,8 +106,9 @@ export async function POST(req: Request) {
             isFinished: currentQuestionIndex >= 4
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Interview Question Generation error:", error);
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
