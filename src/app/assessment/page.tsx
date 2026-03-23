@@ -66,11 +66,15 @@ export default function AssessmentPage() {
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto max-h-[50vh] overflow-y-auto p-1 pr-3 custom-scrollbar">
                             {[
-                                "Machine Learning", "Data Science", "Generative AI",
-                                "Web Development", "Cloud Architecture", "Product Management",
-                                "Mobile Development", "Cyber Security"
+                                "Machine Learning", "Data Science", "Generative AI", "NLP Engineering", "Computer Vision",
+                                "Frontend Web Development", "Backend Development", "Full-Stack Development", "UI/UX Design",
+                                "Cloud Architecture", "DevOps Engineering", "Site Reliability",
+                                "Product Management", "Technical Program Management", "Agile Scrum Master",
+                                "Mobile App Development", "Game Development", "AR/VR Engineering",
+                                "Cyber Security", "Penetration Testing", "Blockchain & Web3", "Data Engineering",
+                                "Embedded Systems", "Robotics"
                             ].map((skill, i) => (
                                 <label
                                     key={i}

@@ -27,7 +27,16 @@ export async function POST(req: Request) {
         let newDifficulty = currentDifficulty;
 
         if (currentQuestionIndex === 0) {
-            newQuestion = `Hi ${clerkUser?.firstName || 'there'}, my name is Aura. Regarding your goal of ${goal} in ${primaryDomain}... You mentioned your biggest challenge is "${deepDiveAnswer}". Since you have ${experience} experience, tell me exactly how you plan to overcome that specific challenge.`;
+            // Treat the deepDiveAnswer as the 0th state to generate a hyper-customized instruction
+            newQuestion = determineNextAction({
+                historyLength: 0,
+                lastAnswerWords: deepDiveAnswer.split(' ').length,
+                technicalDensity: 0.5,
+                difficultyMultiplier: currentDifficulty,
+                detectedKeywords: [deepDiveAnswer.substring(0, 100)], // Use snippet as pivot
+                domain: primaryDomain,
+                intent: 'detailed'
+            });
         } else {
             // 1. Analyze the state of the candidate's last answer
             if (!history || history.length === 0) {
@@ -55,55 +64,94 @@ export async function POST(req: Request) {
         await new Promise((resolve) => setTimeout(resolve, 800));
 
         // -----------------------------------------------------------------------------------
-        // HYBRID GENERATIVE REFINEMENT (Passing Policy -> Local LLM for human polish)
+        // TIMELINE EVALUATOR (Overrides LLM for Intros/Outros)
         // -----------------------------------------------------------------------------------
-        try {
-             const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
-             const ollamaModel = "qwen:0.5b";
-
-             // The LLM's only job is to take the mathematically selected question and make it sound human/empathetic.
-             const rephrasePrompt = `You are a friendly, human-like interviewer. The candidate just said: "${history.length > 0 ? history[history.length - 1].answer : goal}". Rephrase the following follow-up instruction into a natural, conversational question. Do not answer it. Just rephrase it warmly: "${newQuestion}"`;
-
-             const ollamaResponse = await fetch(`${ollamaBaseUrl}/api/generate`, {
-                 method: 'POST',
-                 headers: { 'Content-Type': 'application/json' },
-                 body: JSON.stringify({
-                     model: ollamaModel,
-                     prompt: rephrasePrompt,
-                     stream: false,
-                     options: { temperature: 0.7 }
-                 })
-             });
-
-             if (ollamaResponse.ok) {
-                 const data = await ollamaResponse.json();
-                 const formatted = data.response.trim();
-                 
-                 // Anti-hallucination check for small models
-                 if (formatted.includes("?") && formatted.length > 20 && !formatted.toLowerCase().includes("sure")) {
-                     // Strip out conversational prefixes tiny models sometimes add
-                     if (formatted.includes(":")) {
-                          newQuestion = formatted.split(":")[1].trim();
-                     } else {
-                          newQuestion = formatted;
-                     }
-                 }
-             }
-        } catch (e) {
-             console.warn("Local LLM failed to refine policy question. Falling back to native policy string.");
-        }
-
-        const isFinished = currentQuestionIndex >= 4;
+        const timeLeft = body.timeLeft !== undefined ? body.timeLeft : 900;
+        
+        // Trigger closing interaction when under 60 seconds or hitting question 14
+        const isClosingPhase = (timeLeft <= 60 && timeLeft > 0 && currentQuestionIndex > 8) || currentQuestionIndex === 14;
+        
+        // Completely terminate the interview loop on the NEXT turn
+        const isFinished = timeLeft <= 0 || currentQuestionIndex >= 15;
 
         if (isFinished) {
-            newQuestion = "Thank you for your detailed responses. This concludes the formal technical assessment portion. You may now submit to view your final engineering roadmap and performance score.";
+            newQuestion = `Thank you so much for your time today. I really enjoyed learning about your granular experience conceptually and technically in ${primaryDomain}. I have everything I need. This concludes our formal interview! You can submit now to receive your personalized critique and roadmap.`;
+        } else if (isClosingPhase) {
+            newQuestion = `We are just about out of time for today's session. Before we wrap up completely, do you have any specific questions for me about the role, or would you like some quick initial feedback on how you did today?`;
+        } else if (currentQuestionIndex > 0) {
+            // -----------------------------------------------------------------------------------
+            // HYBRID GENERATIVE REFINEMENT (Passing Policy -> Local LLM for human polish)
+            // -----------------------------------------------------------------------------------
+            try {
+                 const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
+                 const ollamaModel = "qwen:0.5b";
+
+                 const conversationHistory = history && history.length > 0 
+                      ? history.map((h: any) => `${h.role === 'user' ? 'Candidate' : 'Interviewer'}: ${h.answer}`).join('\n')
+                      : "This is the very first question of the interview.";
+                 
+                 const ollamaResponse = await fetch(`${ollamaBaseUrl}/api/chat`, {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({
+                         model: ollamaModel,
+                         messages: [
+                             {
+                                 role: "system",
+                                 content: `You are Aura, an expert technical interviewer. You must ONLY output the exact next spoken question to ask the candidate. DO NOT write a script. DO NOT say "Hello" or "How can I help you". DO NOT answer the user's questions. Your only purpose is to act as the interviewer and ask the next technical question based on the instruction.`
+                             },
+                             {
+                                 role: "user",
+                                 content: `Candidate Profile: Domain: ${primaryDomain}, Experience: ${experience}.
+
+Recent Interview History:
+${conversationHistory}
+
+INSTRUCTION FOR NEXT QUESTION: "${newQuestion}"
+
+Formulate the INSTRUCTION into a single, natural, highly specific human question. Speak directly to the candidate using "you". Do not say "Ask them".
+Output ONLY the question text.`
+                             }
+                         ],
+                         stream: false,
+                         options: { temperature: 0.2 } // Extremely low temperature to prevent creative scripts
+                     })
+                 });
+
+                 if (ollamaResponse.ok) {
+                     const data = await ollamaResponse.json();
+                     let formatted = data.message.content.trim();
+                     
+                     // Brutal Regex to strip Qwen zero-shot hallucination preambles
+                     formatted = formatted.replace(/^The EXACT next question.*?would be:\s*"?/i, "");
+                     formatted = formatted.replace(/^Here is the.*?question:\s*"?/i, "");
+                     formatted = formatted.replace(/"$/g, ""); // strip trailing quotes
+                     
+                     const lowerF = formatted.toLowerCase();
+                     // Aggressive Anti-hallucination check for small models
+                     if (
+                         lowerF.includes("the candidate") ||
+                         lowerF.includes("ask them") ||
+                         lowerF.includes("[instruction]") ||
+                         !formatted.includes("?")
+                     ) {
+                         console.warn("LLM Leaked Instruction. Using safe fallback.");
+                         newQuestion = `In the context of ${primaryDomain}, can you elaborate on your experience specifically handling that kind of architecture?`;
+                     } else if (formatted.length > 5) {
+                         newQuestion = formatted.includes("Assistant:") ? formatted.split("Assistant:")[1].trim() : formatted;
+                         newQuestion = newQuestion.replace(/^Question: /i, "");
+                     }
+                 }
+            } catch (e) {
+                 console.warn("Local LLM failed to refine policy question. Falling back to native policy string.");
+            }
         }
 
         return NextResponse.json({
             success: true,
             question: newQuestion,
-            newDifficulty: newDifficulty, // Pass updated RL state back to client
-            isFinished: currentQuestionIndex >= 4
+            newDifficulty: newDifficulty,
+            isFinished: isFinished
         });
 
     } catch (error: unknown) {

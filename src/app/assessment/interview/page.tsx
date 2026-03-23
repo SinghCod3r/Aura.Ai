@@ -20,6 +20,7 @@ export default function InterviewPage() {
     const [currentDifficulty, setCurrentDifficulty] = useState(5); // Start at standard mid-level
     const [aiState, setAiState] = useState<"initializing" | "thinking" | "speaking" | "listening" | "finished">("initializing");
     const [isEvaluating, setIsEvaluating] = useState(false);
+    const [secondsRemaining, setSecondsRemaining] = useState(900); // 15 mins
 
     // Dictation State
     const [transcript, setTranscript] = useState("");
@@ -155,6 +156,23 @@ export default function InterviewPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, transcript]);
 
+    // Timer Countdown
+    useEffect(() => {
+        let interval: any;
+        if (hasStarted && !isEvaluating && secondsRemaining > 0) {
+            interval = setInterval(() => {
+                setSecondsRemaining(prev => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [hasStarted, isEvaluating, secondsRemaining]);
+
+    const formatTime = (secs: number) => {
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
     const startInterview = () => {
         setHasStarted(true);
         if (synthRef.current) {
@@ -174,7 +192,8 @@ export default function InterviewPage() {
                     context,
                     history,
                     currentQuestionIndex,
-                    currentDifficulty
+                    currentDifficulty,
+                    timeLeft: secondsRemaining
                 })
             });
             const data = await res.json();
@@ -297,7 +316,8 @@ export default function InterviewPage() {
                     context,
                     history: currentHist,
                     currentQuestionIndex: currentQuestionIndex + 1,
-                    currentDifficulty
+                    currentDifficulty,
+                    timeLeft: secondsRemaining
                 })
             });
             const data = await res.json();
@@ -409,7 +429,12 @@ export default function InterviewPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700/50 text-xs font-medium text-slate-300">
+                    {hasStarted && (
+                        <div className={`px-4 py-1.5 rounded-full border text-sm font-bold flex items-center gap-2 ${secondsRemaining > 0 ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 animate-pulse'}`}>
+                            <span>{secondsRemaining > 0 ? 'Time remaining:' : 'Ready to finish:'}</span> {formatTime(secondsRemaining)}
+                        </div>
+                    )}
+                    <div className="hidden md:block px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700/50 text-xs font-medium text-slate-300">
                         {context.domains[0]} • {context.experience}
                     </div>
                 </div>
